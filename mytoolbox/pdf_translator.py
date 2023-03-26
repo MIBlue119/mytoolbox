@@ -2,6 +2,7 @@
 Ref: https://github.com/ywchiu/largitdata/blob/master/code/Course_222.ipynb
 """
 import os
+from pathlib import Path
 import argparse
 
 from nltk.tokenize import sent_tokenize
@@ -48,18 +49,8 @@ def translate_chunk(chunk_text, lang_code:str="zh-Hant", text_engine: str = "gpt
     translated_text =  parse_text_response(response, text_engine=text_engine)
     return translated_text
 
-
-def app(args):
-    """Translate a pdf file to a desired language."""
-
-    file_path = args.file_path
-    lang_code = args.lang_code
-    text_engine = args.text_engine
-    openai_api_key = os.environ.get("OPENAI_API_KEY",  args.openai_api_key)
-    if openai_api_key is None:
-        raise ValueError("Please provide the OpenAI API key.")
-    openai.api_key = openai_api_key
-
+def translate_pdf(file_path, lang_code:str="zh-Hant", text_engine: str = "gpt-3.5-turbo"):
+    export_file_path = Path(file_path).stem + "_translated.pdf"
     reader = PdfFileReader(file_path)
     number_of_pages = len(reader.pages)
     logger.info(f"Number of pages: {number_of_pages}")
@@ -73,7 +64,7 @@ def app(args):
         sentences = sent_tokenize(text)
         chunks = generate_chunks(sentences)
         text_dict[i] = chunks
-    
+
     # Translate the text
     translated_text_dict = {}
     for page, chunks in text_dict.items():
@@ -87,8 +78,23 @@ def app(args):
     for page, chunks in translated_text_dict.items():
         for chunk in chunks:
             writer.addPage(chunk)
-    with open("translated.pdf", "wb") as f:
+
+    # Save the translated pdf file
+    with open(export_file_path, "wb") as f:
         writer.write(f)
+
+
+def app(args):
+    """Translate a pdf file to a desired language."""
+
+    file_path = args.file_path
+    lang_code = args.lang_code
+    text_engine = args.text_engine
+    openai_api_key = os.environ.get("OPENAI_API_KEY",  args.openai_api_key)
+    if openai_api_key is None:
+        raise ValueError("Please provide the OpenAI API key.")
+    openai.api_key = openai_api_key
+    translate_pdf(file_path, lang_code, text_engine)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
